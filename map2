@@ -1,0 +1,155 @@
+__author__ = 'Malgorzata Targan'
+
+# define whether maps should be scaled
+SCALE_MAP = 1
+
+
+from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
+from country import Country
+import csv as csv
+
+from math import radians, cos, sin, asin, sqrt
+
+# calculate distance of the great circle
+def haversine(lon1, lat1, lon2, lat2):
+
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
+
+# declare empty list for countries
+countries = []
+
+# load data from file
+with open('country-capitals.csv', 'rb') as csvfile:
+    content = csv.reader(csvfile, delimiter=',', quotechar='|')
+    for row in content:
+        country_temp = Country()
+        country_temp.set_all(row)
+        countries.append(country_temp)
+
+# get start point
+pointa = raw_input('Input start point name (country or capital): ')
+
+a = [x for x in countries if x._name == pointa]
+if not a:
+    a = [x for x in countries if x._capital == pointa]
+while not a:
+    if pointa == '':
+        print('Not a text!')
+    else:
+        if not pointa[0].isalpha():
+            print('Not a text!')
+        else:
+            if pointa[0].islower():
+                pointa = pointa.upper()
+
+            print(" ")
+            print('Did you mean one of these (countries)?')
+            for x in countries:
+                if x._name[0] == pointa[0]: print x._name
+
+            print(" ")
+            print('Or one of these (capitals)?')
+            for x in countries:
+                if x._capital[0] == pointa[0]: print x._capital
+    pointa = raw_input('Input  once again start point name (country or capital): ')
+    a = [x for x in countries if x._name == pointa]
+    if not a:
+        a = [x for x in countries if x._capital == pointa]
+
+# get destination point
+pointb = raw_input('Input destination name (country or capital): ')
+b = [x for x in countries if x._name == pointb]
+if not b:
+    b = [x for x in countries if x._capital == pointb]
+while not b:
+    if pointb == '':
+        print('Not a text!')
+    else:
+        if not pointb[0].isalpha():
+            print('Not a number!')
+        else:
+            if pointb[0].islower():
+                pointb = pointb.upper()
+
+            print(" ")
+            print('Did you mean one of these (countries)?')
+            for x in countries:
+                if x._name[0] == pointb[0]: print x._name
+
+            print(" ")
+            print('Or one of these (capitals)?')
+            for x in countries:
+                if x._capital[0] == pointb[0]: print x._capital
+
+    pointb = raw_input('Input  once again start point name (country or capital): ')
+    b = [x for x in countries if x._name == pointb]
+    if not b:
+        b = [x for x in countries if x._capital == pointb]
+
+# print calculated distance
+print("Great circle lenght [km] :" + str(haversine(a[0]._longitude, a[0]._latitude, b[0]._longitude, b[0]._latitude)))
+
+# scale map
+if SCALE_MAP == 1:
+    latlimmax = max(a[0]._latitude, b[0]._latitude)+20
+    latlimmin = min(a[0]._latitude, b[0]._latitude)-20
+    lonlimmax = max(a[0]._longitude, b[0]._longitude)+20
+    lonlimmin = min(a[0]._longitude, b[0]._longitude)-20
+
+    if latlimmax >= 90:
+        latlimmax = 89
+
+    if lonlimmax > 180:
+        lonlimmax = 180
+
+    if latlimmin <= -90:
+        latlimmin = -89
+
+    if lonlimmin < -180:
+        lonlimmin = -180
+
+else:
+    latlimmax = 89
+    lonlimmax = 180
+    latlimmin = -89
+    lonlimmin = -180
+
+# Mercator projection
+map = Basemap(projection='merc',
+              lat_0=0.0,
+              lon_0=0.0,
+              llcrnrlon=lonlimmin,
+              llcrnrlat=latlimmin,
+              urcrnrlon=lonlimmax,
+              urcrnrlat=latlimmax)
+
+# plot coastlines, draw label meridians and parallels.
+plt.figure("Great Circle " + str(a[0]._name) + " -> " + str(b[0]._name))
+map.drawcoastlines()
+map.drawmapboundary(fill_color='aqua')
+map.fillcontinents(color='coral',lake_color='aqua')
+map.drawcountries()
+x, y = map(a[0]._longitude, a[0]._latitude)
+x2, y2 = map(b[0]._longitude, b[0]._latitude)
+map.plot(x, y, marker='o',color='r')
+map.plot(x2, y2, marker='o',color='r')
+line = map.drawgreatcircle(a[0]._longitude, a[0]._latitude, b[0]._longitude, b[0]._latitude,linewidth=3,color='r')
+
+
+plt.text(x, y, a[0]._capital,fontsize=12,fontweight='bold', ha='left',va='bottom',color='k')
+plt.text(x2, y2, b[0]._capital,fontsize=12,fontweight='bold', ha='left',va='bottom',color='k')
+
+plt.show()
+
+
+
